@@ -141,6 +141,7 @@ pub struct ExpandedRegister<'a> {
     pub name: String,
     pub offset: u32,
     pub ty: Either<String, Rc<String>>,
+    pub dim: Option<u32>,
 }
 
 /// Takes a list of "registers", some of which may actually be register arrays,
@@ -162,6 +163,7 @@ pub fn expand(registers: &[Register]) -> Vec<ExpandedRegister> {
                                 .to_sanitized_upper_case()
                                 .into_owned(),
                         ),
+                        dim: None,
                     },
                 )
             }
@@ -174,45 +176,59 @@ pub fn expand(registers: &[Register]) -> Vec<ExpandedRegister> {
                     info.name.replace("%s", "")
                 };
 
-                let ty = Rc::new(ty.to_sanitized_upper_case().into_owned());
-
-                let indices = array_info
-                    .dim_index
-                    .as_ref()
-                    .map(|v| Cow::from(&**v))
-                    .unwrap_or_else(
-                        || {
-                            Cow::from(
-                                (0..array_info.dim)
-                                    .map(|i| i.to_string())
-                                    .collect::<Vec<_>>(),
-                            )
-                        },
-                    );
-
-                for (idx, i) in indices.iter().zip(0..) {
-                    let name = if has_brackets {
-                        info.name.replace("[%s]", idx)
-                    } else {
-                        info.name.replace("%s", idx)
-                    };
-
-                    let offset = info.address_offset +
-                                 i * array_info.dim_increment;
-
+                if array_info.dim_increment == 0x04 {
                     out.push(
                         ExpandedRegister {
                             info: info,
-                            name: name.to_sanitized_snake_case().into_owned(),
-                            offset: offset,
-                            ty: Either::Right(ty.clone()),
-                        },
-                    );
+                            name: ty.to_sanitized_upper_case().into_owned(),
+                            offset: info.address_offset,
+                            ty: Either::Left(
+                                ty.to_sanitized_upper_case().into_owned(),
+                            ),
+                            dim: Some(array_info.dim),
+                        }
+                    )
+                } else {
+                    let ty = Rc::new(ty.to_sanitized_upper_case().into_owned());
+
+                    let indices = array_info
+                        .dim_index
+                        .as_ref()
+                        .map(|v| Cow::from(&**v))
+                        .unwrap_or_else(
+                            || {
+                                Cow::from(
+                                    (0..array_info.dim)
+                                        .map(|i| i.to_string())
+                                        .collect::<Vec<_>>(),
+                                )
+                            },
+                        );
+
+                    for (idx, i) in indices.iter().zip(0..) {
+                        let name = if has_brackets {
+                            info.name.replace("[%s]", idx)
+                        } else {
+                            info.name.replace("%s", idx)
+                        };
+
+                        let offset = info.address_offset +
+                            i * array_info.dim_increment;
+
+                        out.push(
+                            ExpandedRegister {
+                                info: info,
+                                name: name.to_sanitized_snake_case().into_owned(),
+                                offset: offset,
+                                ty: Either::Right(ty.clone()),
+                                dim: None,
+                            },
+                        );
+                    }
                 }
             }
         }
     }
-
     out.sort_by_key(|x| x.offset);
 
     out

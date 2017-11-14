@@ -532,10 +532,21 @@ fn register_block(registers: &[Register], defs: &Defaults) -> Result<Tokens> {
             Either::Right(ref ty) => Ident::from(&***ty),
         };
         let reg_name = Ident::new(&*register.name.to_sanitized_snake_case());
-        fields.push(quote! {
-            #[doc = #comment]
-            pub #reg_name : #rty,
-        });
+        match register.dim {
+            Some(dim) => {
+                let dim = dim as usize;
+                fields.push(quote! {
+                    #[doc = #comment]
+                    pub #reg_name : [#rty; #dim],
+                })
+            },
+            None => {
+                fields.push(quote! {
+                    #[doc = #comment]
+                    pub #reg_name : #rty,
+                });
+            }
+        }
 
         offset = register.offset +
                  register
