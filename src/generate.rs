@@ -67,6 +67,12 @@ pub fn device(
             });
         }
         Target::None => {}
+        Target::RiscV => {
+            items.push(quote! {
+                #[cfg(feature = "rt")]
+                extern crate riscv_rt;
+            });
+        }
     }
 
     items.push(quote! {
@@ -302,6 +308,7 @@ pub fn interrupt(
             });
         }
         Target::None => {}
+        Target::RiscV => {}
     }
 
     mod_items.push(quote! {

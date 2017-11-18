@@ -27,6 +27,7 @@ pub enum Target {
     CortexM,
     Msp430,
     None,
+    RiscV,
 }
 
 impl Target {
@@ -35,6 +36,7 @@ impl Target {
             "cortex-m" => Target::CortexM,
             "msp430" => Target::Msp430,
             "none" => Target::None,
+            "riscv" => Target::RiscV,
             _ => bail!("unknown target {}", s),
         })
     }
